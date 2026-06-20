@@ -11,6 +11,8 @@ import secrets
 import string
 import math
 import time
+import threading
+import urllib.request
 from collections import defaultdict
 from html import escape as html_escape
 
@@ -365,6 +367,20 @@ def main():
     if BOT_TOKEN == "YOUR_TOKEN_HERE":
         print("\n❌  No token! Edit telegram_bot.py and add your BotFather token.\n")
         return
+
+    # ── Keep-alive ping every 10 min (prevents Render free tier sleeping) ──────
+    render_url = os.getenv("RENDER_EXTERNAL_URL")
+    if render_url:
+        def ping():
+            while True:
+                try:
+                    urllib.request.urlopen(render_url, timeout=10)
+                    logger.info("✅ Keep-alive ping sent.")
+                except Exception:
+                    pass
+                time.sleep(600)
+        threading.Thread(target=ping, daemon=True).start()
+        logger.info(f"🔔 Keep-alive started: {render_url}")
 
     app = Application.builder().token(BOT_TOKEN).build()
 
