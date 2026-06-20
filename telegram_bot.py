@@ -13,6 +13,7 @@ import math
 import time
 import threading
 import urllib.request
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from collections import defaultdict
 from html import escape as html_escape
 
@@ -367,6 +368,23 @@ def main():
     if BOT_TOKEN == "YOUR_TOKEN_HERE":
         print("\n❌  No token! Edit telegram_bot.py and add your BotFather token.\n")
         return
+
+    # ── Mini HTTP server so UptimeRobot can ping and keep bot alive ───────────
+    class PingHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"Bot is alive!")
+        def log_message(self, format, *args):
+            pass  # silence HTTP logs
+
+    def run_http():
+        port = int(os.getenv("PORT", 8080))
+        server = HTTPServer(("0.0.0.0", port), PingHandler)
+        logger.info(f"🌐 HTTP ping server on port {port}")
+        server.serve_forever()
+
+    threading.Thread(target=run_http, daemon=True).start()
 
     # ── Keep-alive ping every 10 min (prevents Render free tier sleeping) ──────
     render_url = os.getenv("RENDER_EXTERNAL_URL")
